@@ -1,0 +1,8 @@
+# Parquet files
+*.parquet
+
+# Chess PGN (portable game notation)
+*.pgn
+
+# csv
+*.csv
