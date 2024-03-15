@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import chess.pgn
 from mlxtend.frequent_patterns import apriori,  association_rules
+import networkx as nx
 
 
 #%%
@@ -97,10 +98,12 @@ from mlxtend.frequent_patterns import apriori,  association_rules
 #%% Pre-processing
 BigDF = pd.read_parquet('chess_games_large_fen_carlsen.parquet')
 
-min_number_of_games = 150
+min_number_of_games = 20
 
+
+tmp = BigDF['moves'].value_counts()
 # get the most common chess positions
-list_of_most_common_fen_positions = BigDF['moves'].value_counts()[BigDF['moves'].value_counts() > min_number_of_games].index
+list_of_most_common_fen_positions = tmp[tmp.values > min_number_of_games].index
 dict_of_common_fen_positions = {i:j for (i,j) in zip(list_of_most_common_fen_positions, 1 + np.arange(len(list_of_most_common_fen_positions)))}
 
 # get rid of the uncommons positions
@@ -108,6 +111,9 @@ BigDF = BigDF[BigDF['moves'].isin(list_of_most_common_fen_positions)]
 BigDF['moves_id'] = BigDF['moves'].map(dict_of_common_fen_positions)
 
 subset = BigDF[['index', 'id', 'moves_id']].reset_index(drop = True)
+
+counts_of_fen_positions = subset.value_counts('moves_id').to_dict()
+counts_of_fen_positions[0] = subset['id'].nunique()
 
 #%% Create network connections
 
@@ -123,11 +129,8 @@ for i in range(subset.shape[0]-1):
             connections_dict[(0, subset.loc[i+1]['moves_id'])] += 1        
         except KeyError:
             connections_dict[(0, subset.loc[i+1]['moves_id'])] = 1 
+
 #%%
-
-import networkx as nx
-import plotly.graph_objects as go
-
 # Create a graph object
 G = nx.Graph()
 
@@ -135,59 +138,53 @@ G = nx.Graph()
 for edge, weight in connections_dict.items():
     G.add_edge(edge[0], edge[1], weight=weight)
 
-# Get positions for the nodes (random layout in this case)
-pos = nx.spring_layout(G)
+#%%
+from bokeh.io import output_file, show, save
+from bokeh.io import output_notebook, show, save
+from bokeh.models import Range1d, Circle, ColumnDataSource, MultiLine
+from bokeh.plotting import figure
+from bokeh.plotting import from_networkx
+from bokeh.palettes import Blues8, Reds8, Purples8, Oranges8, Viridis8, Spectral8
+from bokeh.transform import linear_cmap
 
-# Create nodes trace
-node_trace = go.Scatter(
-    x=[],
-    y=[],
-    text=[],
-    mode='markers',
-    hoverinfo='text',
-    marker=dict(
-        color='skyblue',
-        size=20,
-        line_width=2))
+#Choose a title!
+title = 'Chess Openings Network'
 
-# Create edges trace
-edge_trace = go.Scatter(
-    x=[],
-    y=[],
-    mode='lines',
-    line=dict(color='#888'),
-    hoverinfo='none')
+output_file(filename="custom_filename.html", title=title)
+nx.set_node_attributes(G, name='count_of_positions', values=counts_of_fen_positions)
+nx.set_node_attributes(G, name='log_counts', values = {i:np.log(j)*3 for i,j in counts_of_fen_positions.items()})
 
-# Add nodes and edges to the traces
-for node in G.nodes():
-    x, y = pos[node]
-    node_trace['x'] += tuple([x])
-    node_trace['y'] += tuple([y])
-    node_trace['text'] += tuple([f'Node: {node}<br>Position: ({list_of_most_common_fen_positions[node-1]})'])
+#Establish which categories will appear when hovering over each node
+HOVER_TOOLTIPS = [("Character", "@index"),
+                  ("Count of positions", "@count_of_positions")]
 
-for edge in G.edges():
-    x0, y0 = pos[edge[0]]
-    x1, y1 = pos[edge[1]]
-    edge_trace['x'] += tuple([x0, x1, None])
-    edge_trace['y'] += tuple([y0, y1, None])
-    
+#Pick a color palette — Blues8, Reds8, Purples8, Oranges8, Viridis8
+color_palette = Blues8
 
-# Create figure
-fig = go.Figure(data=[edge_trace, node_trace],
-                layout=go.Layout(
-                    title='Network Visualization',
-                    titlefont_size=16,
-                    showlegend=False,
-                    hovermode='closest',
-                    margin=dict(b=20, l=5, r=5, t=40),
-                    annotations=[dict(
-                        text="",
-                        showarrow=False,
-                        xref="paper", yref="paper",
-                        x=0.005, y=-0.002)],
-                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)))
+#Create a plot — set dimensions, toolbar, and title
+plot = figure(tooltips = HOVER_TOOLTIPS,
+              tools="pan,wheel_zoom,save,reset", active_scroll='wheel_zoom',
+            x_range=Range1d(-10.1, 10.1), y_range=Range1d(-10.1, 10.1), title=title, width= 1980, height=1080)
+
+#Create a network graph object with spring layout
+network_graph = from_networkx(G, nx.spring_layout, scale=10, center=(0, 0))
+
+#Set node sizes and colors according to node degree (color as spectrum of color palette)
+minimum_value_color = min(network_graph.node_renderer.data_source.data["count_of_positions"])
+maximum_value_color = max(network_graph.node_renderer.data_source.data["count_of_positions"])
+network_graph.node_renderer.glyph = Circle(size="log_counts", fill_color=linear_cmap("count_of_positions", color_palette, minimum_value_color, maximum_value_color))
 
 
-# Show the figure
-fig.show(renderer='browser')
+
+#Set edge opacity and width
+# network_graph.edge_renderer.glyph = MultiLine(line_alpha=0.5, line_width=1)
+
+
+#Add network graph to the plot
+plot.renderers.append(network_graph)
+
+show(plot)
+#save(plot, filename=f"{title}.html")
+
+#%%
+
