@@ -17,7 +17,9 @@ import pandas as pd
 import chess.pgn
 from mlxtend.frequent_patterns import apriori,  association_rules
 import networkx as nx
+import chess
 
+from fentoimage.board import BoardImage
 
 #%%
 # # path_to_file = 'lichess_db_standard_rated_2024-01.pgn'
@@ -98,13 +100,16 @@ import networkx as nx
 #%% Pre-processing
 BigDF = pd.read_parquet('chess_games_large_fen_carlsen.parquet')
 
-min_number_of_games = 20
+min_number_of_games = 50
 
 
 tmp = BigDF['moves'].value_counts()
 # get the most common chess positions
 list_of_most_common_fen_positions = tmp[tmp.values > min_number_of_games].index
 dict_of_common_fen_positions = {i:j for (i,j) in zip(list_of_most_common_fen_positions, 1 + np.arange(len(list_of_most_common_fen_positions)))}
+
+# Invert key-value pairs using dictionary comprehension
+inverted_dict_of_common_fen_positions = {value: key for key, value in dict_of_common_fen_positions.items()}
 
 # get rid of the uncommons positions
 BigDF = BigDF[BigDF['moves'].isin(list_of_most_common_fen_positions)]
@@ -115,6 +120,14 @@ subset = BigDF[['index', 'id', 'moves_id']].reset_index(drop = True)
 counts_of_fen_positions = subset.value_counts('moves_id').to_dict()
 counts_of_fen_positions[0] = subset['id'].nunique()
 
+
+#%% Generate images of each fen position
+for fen_position in list_of_most_common_fen_positions:
+
+    renderer = BoardImage(fen_position)
+    image = renderer.render()
+
+    image.save("images/" + fen_position.replace('/', '_') + ".png")
 #%% Create network connections
 
 connections_dict = {}
@@ -130,6 +143,7 @@ for i in range(subset.shape[0]-1):
         except KeyError:
             connections_dict[(0, subset.loc[i+1]['moves_id'])] = 1 
 
+ 
 #%%
 # Create a graph object
 G = nx.Graph()
@@ -137,8 +151,9 @@ G = nx.Graph()
 # Add edges from the dictionary including weights
 for edge, weight in connections_dict.items():
     G.add_edge(edge[0], edge[1], weight=weight)
-
-#%%
+    
+   
+#%% Color by count
 from bokeh.io import output_file, show, save
 from bokeh.io import output_notebook, show, save
 from bokeh.models import Range1d, Circle, ColumnDataSource, MultiLine
@@ -155,7 +170,7 @@ nx.set_node_attributes(G, name='count_of_positions', values=counts_of_fen_positi
 nx.set_node_attributes(G, name='log_counts', values = {i:np.log(j)*3 for i,j in counts_of_fen_positions.items()})
 
 #Establish which categories will appear when hovering over each node
-HOVER_TOOLTIPS = [("Character", "@index"),
+HOVER_TOOLTIPS = [("Ranking by frequency", "@index"),
                   ("Count of positions", "@count_of_positions")]
 
 #Pick a color palette — Blues8, Reds8, Purples8, Oranges8, Viridis8
