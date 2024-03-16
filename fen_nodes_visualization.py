@@ -26,7 +26,7 @@ from bokeh.io import output_notebook, show, save
 from bokeh.models import Range1d, Circle, ColumnDataSource, MultiLine, HoverTool
 from bokeh.plotting import figure
 from bokeh.plotting import from_networkx
-from bokeh.palettes import Blues8, Reds8, Purples8, Oranges8, Viridis8, Spectral8
+from bokeh.palettes import Blues8, Reds8, Purples8, Oranges8, Viridis8, Spectral8, inferno
 from bokeh.transform import linear_cmap
 
 #%%
@@ -110,6 +110,7 @@ BigDF = pd.read_parquet('chess_games_large_fen_carlsen.parquet')
 
 min_number_of_games = 20
 
+BigDF = BigDF[BigDF['player_white'] == 1]
 
 tmp = BigDF['moves'].value_counts()
 # get the most common chess positions
@@ -123,11 +124,17 @@ inverted_dict_of_common_fen_positions = {value: key for key, value in dict_of_co
 BigDF = BigDF[BigDF['moves'].isin(list_of_most_common_fen_positions)]
 BigDF['moves_id'] = BigDF['moves'].map(dict_of_common_fen_positions)
 
-subset = BigDF[['index', 'id', 'moves_id']].reset_index(drop = True)
+subset = BigDF[['index', 'id', 'result', 'moves_id']].reset_index(drop = True)
 
 counts_of_fen_positions = subset.value_counts('moves_id').to_dict()
 counts_of_fen_positions[0] = subset['id'].nunique()
 
+wins_per_fen_position = subset[subset['result'] == '1-0'].value_counts('moves_id').to_dict()
+wins_per_fen_position[0] = subset[subset['result'] == '1-0']['id'].nunique()
+
+win_ratio_per_fen_position = {i:wins_per_fen_position[i]/counts_of_fen_positions[i] for i in wins_per_fen_position.keys()}
+
+lift_per_fen_position = {i:j/win_ratio_per_fen_position[0] for i,j in win_ratio_per_fen_position.items()}
 
 #%% Generate images of each fen position
 # for ranking, fen_position in inverted_dict_of_common_fen_positions.items():
@@ -203,6 +210,7 @@ show(plot)
 #save(plot, filename=f"{title}.html")
 
 #%% Directed Acyclic Graph
+from bokeh.colors import RGB
 
 # Generate or load your directed graph
 G = nx.DiGraph()
@@ -212,6 +220,7 @@ for edge, weight in connections_dict.items():
     G.add_edge(edge[0], edge[1], weight=weight)
 
 # Set node attributes
+# nx.set_node_attributes(G, name='count_of_positions', values=counts_of_fen_positions)
 nx.set_node_attributes(G, name='count_of_positions', values=counts_of_fen_positions)
 nx.set_node_attributes(G, name='log_counts', values={node: np.log(counts_of_fen_positions[node]) * 3 for node in G.nodes()})
 
@@ -226,10 +235,12 @@ HOVER_TOOLTIPS = [("Ranking by frequency", "@index"), ("Count of positions", "@c
 # Create network graph object
 network_graph = from_networkx(G, nx.spring_layout, scale=10, center=(0, 0))
 
+
+
 # Set node sizes and colors according to node degree
 minimum_value_color = min(nx.get_node_attributes(G, 'count_of_positions').values())
 maximum_value_color = max(nx.get_node_attributes(G, 'count_of_positions').values())
-color_mapper = linear_cmap(field_name='count_of_positions', palette=Blues8, low=minimum_value_color, high=maximum_value_color)
+color_mapper = linear_cmap(field_name='count_of_positions', palette=color_palette, low=minimum_value_color, high=maximum_value_color)
 network_graph.node_renderer.glyph = Circle(size="log_counts", fill_color=color_mapper)
 
 # Set edge opacity and width
@@ -243,3 +254,85 @@ plot.add_tools(HoverTool(tooltips=HOVER_TOOLTIPS))
 
 # Show the plot
 show(plot)
+
+
+#%%
+from bokeh.transform import linear_cmap
+from bokeh.colors import RGB
+
+# Define custom palette with intermediate colors
+red = RGB(255, 0, 0)
+yellow = RGB(255, 255, 0)
+green = RGB(0, 255, 0)
+white = RGB(255, 255, 255)
+
+# Interpolate additional colors between red and yellow
+orange = RGB(255, 165, 0)  # Example of an intermediate color
+intermediate_colors1 = [RGB(int((1 - i) * red.r + i * orange.r), 
+                            int((1 - i) * red.g + i * orange.g), 
+                            int((1 - i) * red.b + i * orange.b))
+                        for i in [0.2, 0.4, 0.6, 0.8]]
+
+# Interpolate additional colors between yellow and green
+lime = RGB(0, 255, 0)  # Example of an intermediate color
+intermediate_colors2 = [RGB(int((1 - i) * yellow.r + i * lime.r), 
+                            int((1 - i) * yellow.g + i * lime.g), 
+                            int((1 - i) * yellow.b + i * lime.b))
+                        for i in [0.2, 0.4, 0.6, 0.8]]
+
+# Create custom palette with all colors
+# custom_palette = [red] + intermediate_colors1 + [yellow] + intermediate_colors2 + [green]
+custom_palette = [red] + [yellow] + [green]
+
+# Create color mapper with custom palette
+
+
+#%% Color by count. undirected Graph. 
+
+
+# Create a graph object
+G = nx.Graph()
+
+# Add edges from the dictionary including weights
+for edge, weight in connections_dict.items():
+    G.add_edge(edge[0], edge[1], weight=weight)
+
+#Choose a title!
+title = 'Chess Openings Network'
+
+output_file(filename="custom_filename.html", title=title)
+nx.set_node_attributes(G, name='count_of_positions', values=lift_per_fen_position)
+nx.set_node_attributes(G, name='log_counts', values = {i:np.log(j)*3 for i,j in counts_of_fen_positions.items()})
+
+#Establish which categories will appear when hovering over each node
+HOVER_TOOLTIPS = [("Ranking by frequency", "@index"),
+                  ("Count of positions", "@count_of_positions")]
+
+#Pick a color palette — Blues8, Reds8, Purples8, Oranges8, Viridis8
+color_palette = Blues8
+
+#Create a plot — set dimensions, toolbar, and title
+plot = figure(tooltips = HOVER_TOOLTIPS,
+              tools="pan,wheel_zoom,save,reset", active_scroll='wheel_zoom',
+            x_range=Range1d(-10.1, 10.1), y_range=Range1d(-10.1, 10.1), title=title, width= 1980, height=1080)
+
+#Create a network graph object with spring layout
+network_graph = from_networkx(G, nx.spring_layout, scale=10, center=(0, 0))
+
+#Set node sizes and colors according to node degree (color as spectrum of color palette)
+minimum_value_color = min(network_graph.node_renderer.data_source.data["count_of_positions"])
+maximum_value_color = max(network_graph.node_renderer.data_source.data["count_of_positions"])
+color_mapper = linear_cmap(field_name='count_of_positions', palette=custom_palette, low=minimum_value_color, high=maximum_value_color)
+network_graph.node_renderer.glyph = Circle(size="log_counts", fill_color=color_mapper)
+
+
+
+#Set edge opacity and width
+# network_graph.edge_renderer.glyph = MultiLine(line_alpha=0.5, line_width=1)
+
+
+#Add network graph to the plot
+plot.renderers.append(network_graph)
+
+show(plot)
+#save(plot, filename=f"{title}.html")
