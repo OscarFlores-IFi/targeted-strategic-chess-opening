@@ -301,12 +301,20 @@ for edge, weight in connections_dict.items():
 title = 'Chess Openings Network'
 
 output_file(filename="custom_filename.html", title=title)
-nx.set_node_attributes(G, name='count_of_positions', values=lift_per_fen_position)
+nx.set_node_attributes(G, name='won_positions', values=wins_per_fen_position)
+nx.set_node_attributes(G, name='count_of_positions', values=counts_of_fen_positions)
+nx.set_node_attributes(G, name='win_ratio', values=win_ratio_per_fen_position)
+nx.set_node_attributes(G, name='lift', values=lift_per_fen_position)
+
 nx.set_node_attributes(G, name='log_counts', values = {i:np.log(j)*3 for i,j in counts_of_fen_positions.items()})
 
 #Establish which categories will appear when hovering over each node
 HOVER_TOOLTIPS = [("Ranking by frequency", "@index"),
-                  ("Count of positions", "@count_of_positions")]
+                  ("Count of positions", "@count_of_positions"),
+                  ("Count of won games", "@won_positions"),
+                  ("Win Ratio", "@win_ratio"),
+                  ("lift", "@lift")
+                  ]
 
 #Pick a color palette — Blues8, Reds8, Purples8, Oranges8, Viridis8
 color_palette = Blues8
@@ -320,9 +328,9 @@ plot = figure(tooltips = HOVER_TOOLTIPS,
 network_graph = from_networkx(G, nx.spring_layout, scale=10, center=(0, 0))
 
 #Set node sizes and colors according to node degree (color as spectrum of color palette)
-minimum_value_color = min(network_graph.node_renderer.data_source.data["count_of_positions"])
-maximum_value_color = max(network_graph.node_renderer.data_source.data["count_of_positions"])
-color_mapper = linear_cmap(field_name='count_of_positions', palette=custom_palette, low=minimum_value_color, high=maximum_value_color)
+minimum_value_color = min(network_graph.node_renderer.data_source.data["lift"])
+maximum_value_color = max(network_graph.node_renderer.data_source.data["lift"])
+color_mapper = linear_cmap(field_name='lift', palette=custom_palette, low=minimum_value_color, high=maximum_value_color)
 network_graph.node_renderer.glyph = Circle(size="log_counts", fill_color=color_mapper)
 
 
