@@ -21,6 +21,14 @@ import chess
 
 from fentoimage.board import BoardImage
 
+from bokeh.io import output_file, show, save
+from bokeh.io import output_notebook, show, save
+from bokeh.models import Range1d, Circle, ColumnDataSource, MultiLine, HoverTool
+from bokeh.plotting import figure
+from bokeh.plotting import from_networkx
+from bokeh.palettes import Blues8, Reds8, Purples8, Oranges8, Viridis8, Spectral8
+from bokeh.transform import linear_cmap
+
 #%%
 # # path_to_file = 'lichess_db_standard_rated_2024-01.pgn'
 # path_to_file = 'lichess_DrNykterstein_2024-03-10.pgn'
@@ -100,7 +108,7 @@ from fentoimage.board import BoardImage
 #%% Pre-processing
 BigDF = pd.read_parquet('chess_games_large_fen_carlsen.parquet')
 
-min_number_of_games = 50
+min_number_of_games = 20
 
 
 tmp = BigDF['moves'].value_counts()
@@ -122,12 +130,12 @@ counts_of_fen_positions[0] = subset['id'].nunique()
 
 
 #%% Generate images of each fen position
-for fen_position in list_of_most_common_fen_positions:
+# for ranking, fen_position in inverted_dict_of_common_fen_positions.items():
 
-    renderer = BoardImage(fen_position)
-    image = renderer.render()
+#     renderer = BoardImage(fen_position)
+#     image = renderer.render()
 
-    image.save("images/" + fen_position.replace('/', '_') + ".png")
+#     image.save("images/" + str(ranking) + "_" +fen_position.replace('/', '_') + ".png")
 #%% Create network connections
 
 connections_dict = {}
@@ -143,24 +151,17 @@ for i in range(subset.shape[0]-1):
         except KeyError:
             connections_dict[(0, subset.loc[i+1]['moves_id'])] = 1 
 
- 
-#%%
+   
+   
+#%% Color by count. undirected Graph. 
+
+
 # Create a graph object
 G = nx.Graph()
 
 # Add edges from the dictionary including weights
 for edge, weight in connections_dict.items():
     G.add_edge(edge[0], edge[1], weight=weight)
-    
-   
-#%% Color by count
-from bokeh.io import output_file, show, save
-from bokeh.io import output_notebook, show, save
-from bokeh.models import Range1d, Circle, ColumnDataSource, MultiLine
-from bokeh.plotting import figure
-from bokeh.plotting import from_networkx
-from bokeh.palettes import Blues8, Reds8, Purples8, Oranges8, Viridis8, Spectral8
-from bokeh.transform import linear_cmap
 
 #Choose a title!
 title = 'Chess Openings Network'
@@ -201,5 +202,44 @@ plot.renderers.append(network_graph)
 show(plot)
 #save(plot, filename=f"{title}.html")
 
-#%%
+#%% Directed Acyclic Graph
 
+# Generate or load your directed graph
+G = nx.DiGraph()
+
+# Add edges from the dictionary including weights
+for edge, weight in connections_dict.items():
+    G.add_edge(edge[0], edge[1], weight=weight)
+
+# Set node attributes
+nx.set_node_attributes(G, name='count_of_positions', values=counts_of_fen_positions)
+nx.set_node_attributes(G, name='log_counts', values={node: np.log(counts_of_fen_positions[node]) * 3 for node in G.nodes()})
+
+# Set up the output file and plot
+title = 'Chess Openings Network'
+output_file(filename="custom_filename.html", title=title)
+plot = figure(tools="pan,wheel_zoom,save,reset", active_scroll='wheel_zoom', x_range=Range1d(-10.1, 10.1), y_range=Range1d(-10.1, 10.1), title=title, width=1980, height=1080)
+
+# Establish tooltips
+HOVER_TOOLTIPS = [("Ranking by frequency", "@index"), ("Count of positions", "@count_of_positions")]
+
+# Create network graph object
+network_graph = from_networkx(G, nx.spring_layout, scale=10, center=(0, 0))
+
+# Set node sizes and colors according to node degree
+minimum_value_color = min(nx.get_node_attributes(G, 'count_of_positions').values())
+maximum_value_color = max(nx.get_node_attributes(G, 'count_of_positions').values())
+color_mapper = linear_cmap(field_name='count_of_positions', palette=Blues8, low=minimum_value_color, high=maximum_value_color)
+network_graph.node_renderer.glyph = Circle(size="log_counts", fill_color=color_mapper)
+
+# Set edge opacity and width
+# Example: network_graph.edge_renderer.glyph = MultiLine(line_alpha=0.5, line_width=1)
+
+# Add network graph to the plot
+plot.renderers.append(network_graph)
+
+# Add hover tool
+plot.add_tools(HoverTool(tooltips=HOVER_TOOLTIPS))
+
+# Show the plot
+show(plot)
