@@ -190,7 +190,7 @@ plot = figure(tooltips = HOVER_TOOLTIPS,
             x_range=Range1d(-10.1, 10.1), y_range=Range1d(-10.1, 10.1), title=title, width= 1980, height=1080)
 
 #Create a network graph object with spring layout
-network_graph = from_networkx(G, nx.spring_layout, scale=10, center=(0, 0))
+network_graph = from_networkx(G, nx.spring_layout, scale=10, seed=42,  center=(0, 0))
 
 #Set node sizes and colors according to node degree (color as spectrum of color palette)
 minimum_value_color = min(network_graph.node_renderer.data_source.data["count_of_positions"])
@@ -325,7 +325,7 @@ plot = figure(tooltips = HOVER_TOOLTIPS,
             x_range=Range1d(-10.1, 10.1), y_range=Range1d(-10.1, 10.1), title=title, width= 1980, height=1080)
 
 #Create a network graph object with spring layout
-network_graph = from_networkx(G, nx.spring_layout, scale=10, center=(0, 0))
+network_graph = from_networkx(G, nx.spring_layout, seed=42, scale=10, center=(0, 0))
 
 #Set node sizes and colors according to node degree (color as spectrum of color palette)
 minimum_value_color = min(network_graph.node_renderer.data_source.data["lift"])
@@ -336,7 +336,7 @@ network_graph.node_renderer.glyph = Circle(size="log_counts", fill_color=color_m
 
 
 #Set edge opacity and width
-# network_graph.edge_renderer.glyph = MultiLine(line_alpha=0.5, line_width=1)
+network_graph.edge_renderer.glyph = MultiLine(line_alpha=0.5, line_width=1)
 
 
 #Add network graph to the plot
