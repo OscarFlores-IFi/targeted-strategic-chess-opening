@@ -108,7 +108,7 @@ from bokeh.transform import linear_cmap
 #%% Pre-processing
 BigDF = pd.read_parquet('chess_games_large_fen_carlsen.parquet')
 
-min_number_of_games = 20
+min_number_of_games = 30
 
 BigDF = BigDF[BigDF['player_white'] == 1]
 
@@ -116,6 +116,7 @@ tmp = BigDF['moves'].value_counts()
 # get the most common chess positions
 list_of_most_common_fen_positions = tmp[tmp.values > min_number_of_games].index
 dict_of_common_fen_positions = {i:j for (i,j) in zip(list_of_most_common_fen_positions, 1 + np.arange(len(list_of_most_common_fen_positions)))}
+dict_of_common_fen_positions['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'] = 0
 
 # Invert key-value pairs using dictionary comprehension
 inverted_dict_of_common_fen_positions = {value: key for key, value in dict_of_common_fen_positions.items()}
@@ -136,13 +137,25 @@ win_ratio_per_fen_position = {i:wins_per_fen_position[i]/counts_of_fen_positions
 
 lift_per_fen_position = {i:j/win_ratio_per_fen_position[0] for i,j in win_ratio_per_fen_position.items()}
 
-#%% Generate images of each fen position
-# for ranking, fen_position in inverted_dict_of_common_fen_positions.items():
+#%%    
+import os
+    # Directory to store images
+images_folder = "images/"
 
-#     renderer = BoardImage(fen_position)
-#     image = renderer.render()
-
-#     image.save("images/" + str(ranking) + "_" +fen_position.replace('/', '_') + ".png")
+# Iterate over ranking and fen_position pairs
+for ranking, fen_position in inverted_dict_of_common_fen_positions.items():
+    # Define the filename for the image
+    image_filename = os.path.join(images_folder, fen_position.replace('/', '_') + ".png")
+    
+    # Check if the image file already exists
+    if not os.path.exists(image_filename):
+        print(f'rendering fen {ranking}')
+        # Create the BoardImage object and render the image
+        renderer = BoardImage(fen_position)
+        image = renderer.render()
+        
+        # Save the image
+        image.save(image_filename)
 #%% Create network connections
 
 connections_dict = {}
@@ -344,3 +357,4 @@ plot.renderers.append(network_graph)
 
 show(plot)
 #save(plot, filename=f"{title}.html")
+
