@@ -9,3 +9,13 @@
 
 # images
 *images/
+
+# Cython
+*.c
+*.pyd
+*.exp
+*.lib
+*.obj
+
+# pickled items
+*.pkl

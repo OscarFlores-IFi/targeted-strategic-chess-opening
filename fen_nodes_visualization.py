@@ -28,150 +28,140 @@ from bokeh.plotting import figure, from_networkx
 from bokeh.palettes import Blues8, Reds8, Purples8, Oranges8, Viridis8, Spectral8, inferno
 from bokeh.transform import linear_cmap
 from bokeh.colors import RGB
+
+import pgn_processor
+import time
+
+
 #%%
-# # path_to_file = 'lichess_db_standard_rated_2024-01.pgn'
+# path_to_file = 'elite_players.pgn'
 # path_to_file = 'lichess_DrNykterstein_2024-03-10.pgn'
-# # path_to_file = 'lichess_oscarmex45_2024-03-06.pgn'
+path_to_file = 'lichess_oscarmex45_2024-03-06.pgn'
 
-# PLAYER_NAME = 'DrNykterstein'
+# Open PGN file for reading
+pgn_file = open(path_to_file, encoding="utf8")
 
-# # Open PGN file for reading
-# pgn_file = open(path_to_file, encoding="utf8")
+t1 = time.time()
 
-# big_table = []
-# counter = 0
-# # Iterate through each game in the PGN file
-# while True:
-# # for _ in range(10):
-#     # Read next game from the PGN file
-#     game = chess.pgn.read_game(pgn_file)
-    
-#     # Check if game exists
-#     if game is None:
-#         break
-    
-#     if game.headers['White'] == PLAYER_NAME:
-#         player_white = 1
-#     elif game.headers['Black'] == PLAYER_NAME:
-#         player_white = 0 
-        
-#     # Extract player Elo ratings
-#     try:
-#         white_elo = int(game.headers["WhiteElo"])
-#     except ValueError:
-#         white_elo = 0
-   
-#     try: 
-#         black_elo = int(game.headers["BlackElo"])
-#     except ValueError:
-#         black_elo = 0
-    
-#     # Extract game result
-#     result = game.headers["Result"]
-#     if result != '*':
-    
-#         # Extract first 5 moves
-#         moves = game.mainline_moves()
-        
-#         board = game.board()
-#         first_n_moves = []
-                 
-#         for move in moves:
-#             board.push(move)
-#             first_n_moves.append(board.fen().split()[0]) # position, not move
-        
-#         tmp = pd.DataFrame({'id': counter,
-#                             'white_elo': white_elo, 
-#                             'black_elo': black_elo, 
-#                             'player_white': player_white, 
-#                             'result': result, 
-#                             'moves': first_n_moves})
-        
+# Process the game using the compiled Cython function
+result_df = pgn_processor.process_games(pgn_file)
 
-#         tmp['value'] = True
-        
-#         big_table.append(tmp)
-        
-#         if counter % 50 == 0:
-#             print(counter)
-#         counter += 1
+t2 = time.time()
+print(t2 - t1)
+# Close PGN file
+pgn_file.close()
 
-# # Close PGN file
-# pgn_file.close()    
+#%% 
 
-# #%% 
-# BigDF = pd.concat(big_table).reset_index()
 
-# BigDF.to_parquet('chess_games_large_fen_carlsen.parquet')
+BigDF.to_parquet('chess_games_large_elite_players.parquet')
 
 #%% Pre-processing
-BigDF = pd.read_parquet('chess_games_large_fen_oscarmex45.parquet')
+# BigDF = pd.read_parquet('chess_games_large_elite_players.parquet')
 
-min_number_of_games = 30
+# min_number_of_games = 700
 
-BigDF = BigDF[BigDF['player_white'] == 0]
+# # BigDF = BigDF[BigDF['player_white'] == 0]
 
-tmp = BigDF['moves'].value_counts()
-# get the most common chess positions
-list_of_most_common_fen_positions = tmp[tmp.values > min_number_of_games].index
-dict_of_common_fen_positions = {i:j for (i,j) in zip(list_of_most_common_fen_positions, 1 + np.arange(len(list_of_most_common_fen_positions)))}
-dict_of_common_fen_positions['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'] = 0
+# tmp = BigDF['moves'].value_counts()
+# # get the most common chess positions
+# list_of_most_common_fen_positions = tmp[tmp.values > min_number_of_games].index
+# dict_of_common_fen_positions = {i:j for (i,j) in zip(list_of_most_common_fen_positions, 1 + np.arange(len(list_of_most_common_fen_positions)))}
+# dict_of_common_fen_positions['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'] = 0
 
-# Invert key-value pairs using dictionary comprehension
-inverted_dict_of_common_fen_positions = {value: key for key, value in dict_of_common_fen_positions.items()}
+# # Invert key-value pairs using dictionary comprehension
+# inverted_dict_of_common_fen_positions = {value: key for key, value in dict_of_common_fen_positions.items()}
 
-# get rid of the uncommons positions
-BigDF = BigDF[BigDF['moves'].isin(list_of_most_common_fen_positions)]
-BigDF['moves_id'] = BigDF['moves'].map(dict_of_common_fen_positions)
+# # get rid of the uncommons positions
+# BigDF = BigDF[BigDF['moves'].isin(list_of_most_common_fen_positions)]
+# BigDF['moves_id'] = BigDF['moves'].map(dict_of_common_fen_positions)
 
-subset = BigDF[['index', 'id', 'result', 'moves_id']].reset_index(drop = True)
+# subset = BigDF[['index', 'id', 'result', 'moves_id']].reset_index(drop = True)
 
-counts_of_fen_positions = subset.value_counts('moves_id').to_dict()
-counts_of_fen_positions[0] = subset['id'].nunique()
+# counts_of_fen_positions = subset.value_counts('moves_id').to_dict()
+# counts_of_fen_positions[0] = subset['id'].nunique()
 
-wins_per_fen_position = subset[subset['result'] == '1-0'].value_counts('moves_id').to_dict()
-wins_per_fen_position[0] = subset[subset['result'] == '1-0']['id'].nunique()
+# wins_per_fen_position = subset[subset['result'] == '1-0'].value_counts('moves_id').to_dict()
+# wins_per_fen_position[0] = subset[subset['result'] == '1-0']['id'].nunique()
 
-win_ratio_per_fen_position = {i:wins_per_fen_position[i]/counts_of_fen_positions[i] for i in wins_per_fen_position.keys()}
+# win_ratio_per_fen_position = {i:wins_per_fen_position[i]/counts_of_fen_positions[i] for i in wins_per_fen_position.keys()}
 
-lift_per_fen_position = {i:j/win_ratio_per_fen_position[0] for i,j in win_ratio_per_fen_position.items()}
+# lift_per_fen_position = {i:j/win_ratio_per_fen_position[0] for i,j in win_ratio_per_fen_position.items()}
 
 #%%    
-import os
-    # Directory to store images
-images_folder = "images/"
+# import os
+#     # Directory to store images
+# images_folder = "images/"
 
-# Iterate over ranking and fen_position pairs
-for ranking, fen_position in inverted_dict_of_common_fen_positions.items():
-    # Define the filename for the image
-    image_filename = os.path.join(images_folder, fen_position.replace('/', '_') + ".png")
+# # Iterate over ranking and fen_position pairs
+# for ranking, fen_position in inverted_dict_of_common_fen_positions.items():
+#     # Define the filename for the image
+#     image_filename = os.path.join(images_folder, fen_position.replace('/', '_') + ".png")
     
-    # Check if the image file already exists
-    if not os.path.exists(image_filename):
-        print(f'rendering fen {ranking}')
-        # Create the BoardImage object and render the image
-        renderer = BoardImage(fen_position)
-        image = renderer.render()
+#     # Check if the image file already exists
+#     if not os.path.exists(image_filename):
+#         print(f'rendering fen {ranking}')
+#         # Create the BoardImage object and render the image
+#         renderer = BoardImage(fen_position)
+#         image = renderer.render()
         
-        # Save the image
-        image.save(image_filename)
+#         # Save the image
+#         image.save(image_filename)
 #%% Create network connections
 
-connections_dict = {}
-for i in range(subset.shape[0]-1):
-    if subset.loc[i]['id'] == subset.loc[i+1]['id']:
-        if subset.loc[i]['index'] + 1 == subset.loc[i + 1]['index']:
-            try:
-                connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] += 1        
-            except KeyError:
-                connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] = 1 
-    else:
-        if subset.loc[i+1]['index'] == 0:
-            try:
-                connections_dict[(0, subset.loc[i+1]['moves_id'])] += 1        
-            except KeyError:
-                connections_dict[(0, subset.loc[i+1]['moves_id'])] = 1 
+# connections_dict = {}
+# for i in range(subset.shape[0]-1):
+#     if subset.loc[i]['id'] == subset.loc[i+1]['id']:
+#         if subset.loc[i]['index'] + 1 == subset.loc[i + 1]['index']:
+#             try:
+#                 connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] += 1        
+#             except KeyError:
+#                 connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] = 1 
+#     else:
+#         if subset.loc[i+1]['index'] == 0:
+#             try:
+#                 connections_dict[(0, subset.loc[i+1]['moves_id'])] += 1        
+#             except KeyError:
+#                 connections_dict[(0, subset.loc[i+1]['moves_id'])] = 1 
 
+
+#%%
+
+import pickle
+
+# # Variables to be saved
+# variables_to_save = {
+#     'list_of_most_common_fen_positions': list_of_most_common_fen_positions,
+#     'dict_of_common_fen_positions': dict_of_common_fen_positions,
+#     'inverted_dict_of_common_fen_positions': inverted_dict_of_common_fen_positions,
+#     'counts_of_fen_positions': counts_of_fen_positions,
+#     'wins_per_fen_position': wins_per_fen_position,
+#     'win_ratio_per_fen_position': win_ratio_per_fen_position,
+#     'lift_per_fen_position': lift_per_fen_position,
+#     'connections_dict': connections_dict
+# }
+
+# # Define the filename to save the variables
+filename = 'saved_variables.pkl'
+
+# # Pickle the variables and save them to a file
+# with open(filename, 'wb') as file:
+#     pickle.dump(variables_to_save, file)
+
+# To load the variables back into the environment later:
+# Load the variables from the file
+with open(filename, 'rb') as file:
+    loaded_variables = pickle.load(file)
+
+# Now you can access the variables from the loaded dictionary
+list_of_most_common_fen_positions = loaded_variables['list_of_most_common_fen_positions']
+dict_of_common_fen_positions = loaded_variables['dict_of_common_fen_positions']
+inverted_dict_of_common_fen_positions = loaded_variables['inverted_dict_of_common_fen_positions']
+counts_of_fen_positions = loaded_variables['counts_of_fen_positions']
+wins_per_fen_position = loaded_variables['wins_per_fen_position']
+win_ratio_per_fen_position = loaded_variables['win_ratio_per_fen_position']
+lift_per_fen_position = loaded_variables['lift_per_fen_position']
+connections_dict = loaded_variables['connections_dict']
 #%%
 
 
@@ -206,8 +196,8 @@ from bokeh.models import ColumnDataSource, HoverTool
 
 
 # Create a graph object
-# G = nx.Graph()
-G = nx.DiGraph()
+G = nx.Graph()
+# G = nx.DiGraph()
 
 
 # Add edges from the dictionary including weights
@@ -243,7 +233,7 @@ description = [inverted_dict_of_common_fen_positions[i] for i in G.nodes]
 image_location = ['images/' + inverted_dict_of_common_fen_positions[i].replace('/','_') + '.png' for i in G.nodes]
 idx = [i for i in G.nodes]
 counts_fen = [counts_of_fen_positions[i] for i in G.nodes]
-log_counts_fen = [np.log(counts_of_fen_positions[i])*3 for i in G.nodes]
+log_counts_fen = [np.log(counts_of_fen_positions[i]) for i in G.nodes]
 won_positions = [wins_per_fen_position[i] for i in G.nodes]
 win_ratio = [win_ratio_per_fen_position[i] for i in G.nodes]
 lift = [lift_per_fen_position[i] for i in G.nodes]
