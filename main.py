@@ -43,7 +43,7 @@ def main():
                 processes.append(executor.submit(process_pgn_file, file_path))
     
     # merge parquet files into one.
-    paths = Path("LichessEliteDatabase").glob("*.parquet")
+    paths = Path("FilteredLichessEliteDatabase").glob("*.parquet")
     coalesce_parquets(paths, "chess_games_large_elite_players.parquet")
     
     for task in as_completed(processes):

@@ -55,8 +55,6 @@ def process_games(chunk, PLAYER_NAME = None):
             tmp['value'] = True
             
             big_table.append(tmp)
-            
-            if counter % 1000 == 0:
-                print(counter)
+
             counter += 1
     return pd.concat(big_table)
