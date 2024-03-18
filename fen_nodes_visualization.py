@@ -26,6 +26,7 @@ import pgn_processor
 import time
 
 import os
+import webbrowser
 
 #%% Pre-processing
 # Directory containing PGN files of elite players
@@ -68,10 +69,10 @@ BigFilteredDF['moves_id'] = BigFilteredDF['moves'].map(dict_of_common_fen_positi
 subset = BigFilteredDF[['id', 'result', 'moves_id']].reset_index()
 
 counts_of_fen_positions = subset.value_counts('moves_id').to_dict()
-counts_of_fen_positions[0] = subset['id'].nunique()
+counts_of_fen_positions[0] = subset[subset['index'] == 0]['id'].count()
 
 wins_per_fen_position = subset[subset['result'] == '1-0'].value_counts('moves_id').to_dict()
-wins_per_fen_position[0] = subset[subset['result'] == '1-0']['id'].nunique()
+wins_per_fen_position[0] = subset[(subset['result'] == '1-0') & (subset['index'] == 0)]['id'].count()
 
 win_ratio_per_fen_position = {i:wins_per_fen_position[i]/counts_of_fen_positions[i] for i in wins_per_fen_position.keys()}
 
@@ -98,44 +99,44 @@ for ranking, fen_position in inverted_dict_of_common_fen_positions.items():
         image.save(image_filename)
 #%% Create network connections
 
-connections_dict = {}
-for i in range(subset.shape[0]-1):
-    if subset.loc[i]['id'] == subset.loc[i+1]['id']:
-        if subset.loc[i]['index'] + 1 == subset.loc[i + 1]['index']:
-            try:
-                connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] += 1        
-            except KeyError:
-                connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] = 1 
-    else:
-        if subset.loc[i+1]['index'] == 0:
-            try:
-                connections_dict[(0, subset.loc[i+1]['moves_id'])] += 1        
-            except KeyError:
-                connections_dict[(0, subset.loc[i+1]['moves_id'])] = 1 
+# connections_dict = {}
+# for i in range(subset.shape[0]-1):
+#     if subset.loc[i]['id'] == subset.loc[i+1]['id']:
+#         if subset.loc[i]['index'] + 1 == subset.loc[i + 1]['index']:
+#             try:
+#                 connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] += 1        
+#             except KeyError:
+#                 connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] = 1 
+#     else:
+#         if subset.loc[i+1]['index'] == 0:
+#             try:
+#                 connections_dict[(0, subset.loc[i+1]['moves_id'])] += 1        
+#             except KeyError:
+#                 connections_dict[(0, subset.loc[i+1]['moves_id'])] = 1 
 
 
 #%%
 
 import pickle
 
-# Variables to be saved
-variables_to_save = {
-    'list_of_most_common_fen_positions': list_of_most_common_fen_positions,
-    'dict_of_common_fen_positions': dict_of_common_fen_positions,
-    'inverted_dict_of_common_fen_positions': inverted_dict_of_common_fen_positions,
-    'counts_of_fen_positions': counts_of_fen_positions,
-    'wins_per_fen_position': wins_per_fen_position,
-    'win_ratio_per_fen_position': win_ratio_per_fen_position,
-    'lift_per_fen_position': lift_per_fen_position,
-    'connections_dict': connections_dict
-}
+# # Variables to be saved
+# variables_to_save = {
+#     'list_of_most_common_fen_positions': list_of_most_common_fen_positions,
+#     'dict_of_common_fen_positions': dict_of_common_fen_positions,
+#     'inverted_dict_of_common_fen_positions': inverted_dict_of_common_fen_positions,
+#     'counts_of_fen_positions': counts_of_fen_positions,
+#     'wins_per_fen_position': wins_per_fen_position,
+#     'win_ratio_per_fen_position': win_ratio_per_fen_position,
+#     'lift_per_fen_position': lift_per_fen_position,
+#     'connections_dict': connections_dict
+# }
 
 # # Define the filename to save the variables
 filename = 'saved_variables.pkl'
 
-# Pickle the variables and save them to a file
-with open(filename, 'wb') as file:
-    pickle.dump(variables_to_save, file)
+# # Pickle the variables and save them to a file
+# with open(filename, 'wb') as file:
+#     pickle.dump(variables_to_save, file)
 
 # To load the variables back into the environment later:
 # Load the variables from the file
@@ -180,13 +181,14 @@ custom_palette = [red] + intermediate_colors1 + [yellow] + intermediate_colors2 
 
 # Create color mapper with custom palette
 
-#%%from bokeh.plotting import figure, show
-from bokeh.models import ColumnDataSource, HoverTool
+#%%
+from bokeh.io import output_file, show
 
+from bokeh.plotting import figure, show
 
 # Create a graph object
-G = nx.Graph()
-# G = nx.DiGraph()
+# G = nx.Graph()
+G = nx.DiGraph()
 
 
 # Add edges from the dictionary including weights
@@ -260,7 +262,7 @@ source_nodes = ColumnDataSource(data_nodes)
 p = figure(width=1980, height=1080, active_scroll='wheel_zoom')
 
 # Plot the lines for edges
-p.multi_line(lines_x, lines_y, line_color=lines_weight, line_width=1)
+p.multi_line(lines_x, lines_y, line_color=1, line_width=1)
 
 # Color by count of positions
 # minimum_value_color = min(counts_fen)
@@ -278,8 +280,11 @@ circle = p.circle('x', 'y', size='log_count_of_positions', source=source_nodes, 
 hover_tool_nodes = HoverTool(renderers=[circle], tooltips=TOOLTIPS_NODES)
 p.add_tools(hover_tool_nodes)
 
-
-# Show the plot
+html_filename = "elite_players.html"
+output_file(html_filename)
 show(p)
+
+# Optionally, you can open the HTML file in a web browser automatically
+webbrowser.open(html_filename)
 #%%
 
