@@ -29,25 +29,28 @@ import os
 import webbrowser
 
 #%% Pre-processing
-# Directory containing PGN files of elite players
-directory = 'LichessEliteDatabase'
 
-# Get all files in the directory
-files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+# # Directory containing PGN files of elite players
+# directory = 'LichessEliteDatabase'
 
-# Filter files to include only those with .pgn extension
-list_of_parquet_files = [f for f in files if f.endswith('.parquet')]
+# # Get all files in the directory
+# files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
 
-for filename in list_of_parquet_files:
-    BigDF = pd.read_parquet(filename)
+# # Filter files to include only those with .pgn extension
+# list_of_parquet_files = [f for f in files if f.endswith('.parquet')]
 
-    filtered_df = BigDF[BigDF.duplicated(['moves'], keep=False)]
-    filtered_df.to_parquet('Filtered' + filename)
+# for filename in list_of_parquet_files:
+#     BigDF = pd.read_parquet(filename)
+
+#     filtered_df = BigDF[BigDF.duplicated(['moves'], keep=False)]
+#     filtered_df.to_parquet('Filtered' + filename)
 
 
-#%%
-BigFilteredDF = pd.read_parquet('chess_games_large_elite_players.parquet')
-BigFilteredDF = BigFilteredDF[BigFilteredDF.index < 30]
+#%% Get dataset of filtered positions.
+t1 = time.time()
+
+BigFilteredDF = pd.read_parquet('chess_games_large_elite_players.parquet') # this dataset considers only repeated moves
+BigFilteredDF = BigFilteredDF[BigFilteredDF.index < 30] # Only repeated moves in the opening, we do not care about repeated moves in endgame.
 
 min_number_of_games = np.ceil(BigFilteredDF.shape[0]*0.00005) # 1 out of 2000 games had at least those positions
 
@@ -68,17 +71,9 @@ BigFilteredDF['moves_id'] = BigFilteredDF['moves'].map(dict_of_common_fen_positi
 
 subset = BigFilteredDF[['id', 'result', 'moves_id']].reset_index()
 
-counts_of_fen_positions = subset.value_counts('moves_id').to_dict()
-counts_of_fen_positions[0] = subset[subset['index'] == 0]['id'].count()
 
-wins_per_fen_position = subset[subset['result'] == '1-0'].value_counts('moves_id').to_dict()
-wins_per_fen_position[0] = subset[(subset['result'] == '1-0') & (subset['index'] == 0)]['id'].count()
 
-win_ratio_per_fen_position = {i:wins_per_fen_position[i]/counts_of_fen_positions[i] for i in wins_per_fen_position.keys()}
-
-lift_per_fen_position = {i:j/win_ratio_per_fen_position[0] for i,j in win_ratio_per_fen_position.items()}
-
-#%%    
+#%% Generate Images
 import os
     # Directory to store images
 images_folder = "images/"
@@ -97,46 +92,45 @@ for ranking, fen_position in inverted_dict_of_common_fen_positions.items():
         
         # Save the image
         image.save(image_filename)
-#%% Create network connections
 
-# connections_dict = {}
-# for i in range(subset.shape[0]-1):
-#     if subset.loc[i]['id'] == subset.loc[i+1]['id']:
-#         if subset.loc[i]['index'] + 1 == subset.loc[i + 1]['index']:
-#             try:
-#                 connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] += 1        
-#             except KeyError:
-#                 connections_dict[(subset.loc[i]['moves_id'], subset.loc[i+1]['moves_id'])] = 1 
-#     else:
-#         if subset.loc[i+1]['index'] == 0:
-#             try:
-#                 connections_dict[(0, subset.loc[i+1]['moves_id'])] += 1        
-#             except KeyError:
-#                 connections_dict[(0, subset.loc[i+1]['moves_id'])] = 1 
+#%% Values shown in dashboard. 
+counts_of_fen_positions = subset.value_counts('moves_id').to_dict()
+counts_of_fen_positions[0] = subset[subset['index'] == 0]['id'].count()
 
+wins_per_fen_position = subset[subset['result'] == '1-0'].value_counts('moves_id').to_dict()
+wins_per_fen_position[0] = subset[(subset['result'] == '1-0') & (subset['index'] == 0)]['id'].count()
 
+win_ratio_per_fen_position = {i:wins_per_fen_position[i]/counts_of_fen_positions[i] for i in wins_per_fen_position.keys()}
+
+lift_per_fen_position = {i:j/win_ratio_per_fen_position[0] for i,j in win_ratio_per_fen_position.items()}
+
+# Create network connections
+subset2 = pd.concat([subset.iloc[:-1,[1,3]].reset_index(drop=True), subset.iloc[1:,[1,3]].reset_index(drop=True)], axis=1)
+subset2.columns = ['id1', 'moves_id1', 'id2', 'moves_id2']
+subset2.loc[subset2['id1'] != subset2['id2'], 'moves_id1'] = 0
+connections_dict = subset2.groupby(['moves_id1', 'moves_id2']).count().max(axis=1).to_dict()
 #%%
 
 import pickle
 
-# # Variables to be saved
-# variables_to_save = {
-#     'list_of_most_common_fen_positions': list_of_most_common_fen_positions,
-#     'dict_of_common_fen_positions': dict_of_common_fen_positions,
-#     'inverted_dict_of_common_fen_positions': inverted_dict_of_common_fen_positions,
-#     'counts_of_fen_positions': counts_of_fen_positions,
-#     'wins_per_fen_position': wins_per_fen_position,
-#     'win_ratio_per_fen_position': win_ratio_per_fen_position,
-#     'lift_per_fen_position': lift_per_fen_position,
-#     'connections_dict': connections_dict
-# }
+# Variables to be saved
+variables_to_save = {
+    'list_of_most_common_fen_positions': list_of_most_common_fen_positions,
+    'dict_of_common_fen_positions': dict_of_common_fen_positions,
+    'inverted_dict_of_common_fen_positions': inverted_dict_of_common_fen_positions,
+    'counts_of_fen_positions': counts_of_fen_positions,
+    'wins_per_fen_position': wins_per_fen_position,
+    'win_ratio_per_fen_position': win_ratio_per_fen_position,
+    'lift_per_fen_position': lift_per_fen_position,
+    'connections_dict': connections_dict
+}
 
 # # Define the filename to save the variables
 filename = 'saved_variables.pkl'
 
-# # Pickle the variables and save them to a file
-# with open(filename, 'wb') as file:
-#     pickle.dump(variables_to_save, file)
+# Pickle the variables and save them to a file
+with open(filename, 'wb') as file:
+    pickle.dump(variables_to_save, file)
 
 # To load the variables back into the environment later:
 # Load the variables from the file
@@ -262,7 +256,7 @@ source_nodes = ColumnDataSource(data_nodes)
 p = figure(width=1980, height=1080, active_scroll='wheel_zoom')
 
 # Plot the lines for edges
-p.multi_line(lines_x, lines_y, line_color=1, line_width=1)
+p.multi_line(lines_x, lines_y, line_color=lines_weight, line_width=1)
 
 # Color by count of positions
 # minimum_value_color = min(counts_fen)
@@ -283,6 +277,9 @@ p.add_tools(hover_tool_nodes)
 html_filename = "elite_players.html"
 output_file(html_filename)
 show(p)
+
+t2 = time.time()
+print(t2-t1)
 
 # Optionally, you can open the HTML file in a web browser automatically
 webbrowser.open(html_filename)
