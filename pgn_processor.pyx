@@ -58,3 +58,5 @@ def process_games(chunk, PLAYER_NAME = None):
 
             counter += 1
     return pd.concat(big_table)
+
+    # python setup.py build_ext --inplace

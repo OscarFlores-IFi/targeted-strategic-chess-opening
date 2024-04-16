@@ -2,27 +2,17 @@
 
 import numpy as np
 import pandas as pd
-import chess.pgn
-from mlxtend.frequent_patterns import apriori,  association_rules
 import networkx as nx
-import chess
-
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from fentoimage.board import BoardImage
 
-from bokeh.io import output_file, show, save
-from bokeh.io import output_notebook, show, save
-from bokeh.models import Range1d, Circle, ColumnDataSource, MultiLine, HoverTool
-from bokeh.plotting import figure, from_networkx
+from bokeh.io import output_file, show
+from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.plotting import figure
 from bokeh.palettes import Blues8, Reds8, Purples8, Oranges8, Viridis8, Spectral8, inferno
 from bokeh.transform import linear_cmap
 from bokeh.colors import RGB
 
-import multiprocessing
-from functools import partial
-
-import pgn_processor
 import time
 
 import os
