@@ -203,7 +203,7 @@ TOOLTIPS_NODES = """
             <span style="font-size: 10px; color: #696;">Ranking by frequency: @index</span><br>
             <span style="font-size: 10px; color: #696;">Count of positions: @count_of_positions</span><br>
             <span style="font-size: 10px; color: #696;">Count of won games: @won_positions</span><br>
-            <span style="font-size: 10px; color: #696;">Win Ratio: @win_ratio</span><br>
+            <span style="font-size: 10px; color: #696;">White win Ratio: @win_ratio</span><br>
             <span style="font-size: 10px; color: #696;">lift: @lift</span>
         </div>
     </div>
