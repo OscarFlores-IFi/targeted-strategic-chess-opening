@@ -30,6 +30,13 @@ import os
 #     filtered_df = BigDF[BigDF.duplicated(['moves'], keep=False)]
 #     filtered_df.to_parquet('Filtered' + filename)
 
+def human_format(num):
+    num = float('{:.3g}'.format(num))
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 #%% Get dataset of filtered positions.
 t1 = time.time()
@@ -158,8 +165,14 @@ for edge in G.edges(data=True):
     edge_traces.append(edge_trace)
 
 #% aestetic details. 
+
+description = [inverted_dict_of_common_fen_positions[i] for i in G.nodes]
+image_location = ['images/' + inverted_dict_of_common_fen_positions[i].replace('/','_') + '.png' for i in G.nodes]
+idx = [i for i in G.nodes]
 counts_fen = [counts_of_fen_positions[i] for i in G.nodes]
 log_counts_fen = [np.log(counts_of_fen_positions[i]) for i in G.nodes]
+won_positions = [wins_per_fen_position[i] for i in G.nodes]
+win_ratio = [win_ratio_per_fen_position[i] for i in G.nodes]
 lift = [lift_per_fen_position[i] for i in G.nodes]
 color_mapper_func = lambda x: min(max(x-0.5,0),1.5)
 mapped_color = [color_mapper_func(x) for x in lift]
@@ -174,14 +187,15 @@ node_trace = go.Scatter3d(
         size=log_counts_fen,  # Size based on variable1
         color=mapped_color,  # Color based on variable2
         colorscale='RdYlGn',  # Choose a colorscale
-        colorbar=dict(title='Variable 2'),  # Add colorbar label
-        opacity=0.8,
+        colorbar=dict(title='Lift'),  # Add colorbar label
+        opacity=0.95,
         line=dict(color='rgb(50,50,50)', width=0.5)  # Node border
     ),
-    text=[f'Node: {node}<br>Variable 3: <br>Variable 4: ' for i, node in enumerate(G.nodes())],  # Tooltip
+    text=[f'Ranking by frequency: {node}<br>Won Positions: {human_format(won_positions[i])} <br>Win Ratio: {np.round(win_ratio[i],3)} <br>Lift: {np.round(lift[i],3)}' for i, node in enumerate(G.nodes())],  # Tooltip
     hoverinfo='text',
     showlegend=False  # Hide legend
 )
+
 
 # Create layout
 layout = go.Layout(
