@@ -6,17 +6,12 @@ import networkx as nx
 
 from fentoimage.board import BoardImage
 
-from bokeh.io import output_file, show
-from bokeh.models import ColumnDataSource, HoverTool
-from bokeh.plotting import figure
-from bokeh.palettes import Blues8, Reds8, Purples8, Oranges8, Viridis8, Spectral8, inferno
-from bokeh.transform import linear_cmap
-from bokeh.colors import RGB
+import plotly.graph_objects as go
+import plotly.io as pio
 
 import time
 
 import os
-import webbrowser
 
 #%% Pre-processing
 
@@ -40,7 +35,7 @@ import webbrowser
 t1 = time.time()
 
 BigFilteredDF = pd.read_parquet('chess_games_large_elite_players.parquet') # this dataset considers only repeated moves
-BigFilteredDF = BigFilteredDF[BigFilteredDF.index < 30] # Only repeated moves in the opening, we do not care about repeated moves in endgame.
+BigFilteredDF = BigFilteredDF[BigFilteredDF.index < 15] # Only repeated moves in the opening, we do not care about repeated moves in endgame.
 
 min_number_of_games = np.ceil(BigFilteredDF.shape[0]*0.0005) # 1 out of 2000 games had at least those positions
 
@@ -99,8 +94,7 @@ subset2 = pd.concat([subset.iloc[:-1,[1,3]].reset_index(drop=True), subset.iloc[
 subset2.columns = ['id1', 'moves_id1', 'id2', 'moves_id2']
 subset2.loc[subset2['id1'] != subset2['id2'], 'moves_id1'] = 0
 connections_dict = subset2.groupby(['moves_id1', 'moves_id2']).count().max(axis=1).to_dict()
-#%%
-# # Define the filename to save the variables
+#%% Save variables
 filename = 'saved_variables.pkl'
 
 # Variables to be saved
@@ -120,10 +114,9 @@ with open(filename, 'wb') as file:
     pickle.dump(variables_to_save, file)
 
 
-#%%
+#%% Load variables
+filename = 'saved_variables.pkl'
 
-# To load the variables back into the environment later:
-# Load the variables from the file
 with open(filename, 'rb') as file:
     loaded_variables = pickle.load(file)
 
@@ -136,135 +129,73 @@ wins_per_fen_position = loaded_variables['wins_per_fen_position']
 win_ratio_per_fen_position = loaded_variables['win_ratio_per_fen_position']
 lift_per_fen_position = loaded_variables['lift_per_fen_position']
 connections_dict = loaded_variables['connections_dict']
-#%%
 
-
-# Define custom palette with intermediate colors
-red = RGB(255, 0, 0)
-yellow = RGB(255, 255, 0)
-green = RGB(0, 255, 0)
-white = RGB(255, 255, 255)
-
-# Interpolate additional colors between red and yellow
-orange = RGB(255, 165, 0)  # Example of an intermediate color
-intermediate_colors1 = [RGB(int((1 - i) * red.r + i * orange.r), 
-                            int((1 - i) * red.g + i * orange.g), 
-                            int((1 - i) * red.b + i * orange.b))
-                        for i in [0.2, 0.4, 0.6, 0.8]]
-
-# Interpolate additional colors between yellow and green
-lime = RGB(0, 255, 0)  # Example of an intermediate color
-intermediate_colors2 = [RGB(int((1 - i) * yellow.r + i * lime.r), 
-                            int((1 - i) * yellow.g + i * lime.g), 
-                            int((1 - i) * yellow.b + i * lime.b))
-                        for i in [0.2, 0.4, 0.6, 0.8]]
-
-# Create custom palette with all colors
-custom_palette = [red] + intermediate_colors1 + [yellow] + intermediate_colors2 + [green]
-# custom_palette = [red] + [yellow] + [green]
-
-# Create color mapper with custom palette
-
-# %%
-from bokeh.io import output_file, show
-
-# Create a graph object
+#%% Create a sample graph
 G = nx.Graph()
-# G = nx.DiGraph()
-
 
 # Add edges from the dictionary including weights
 for edge, weight in connections_dict.items():
     G.add_edge(edge[0], edge[1], weight=weight)
     
-# Calculate node positions using a layout algorithm
-pos = nx.spring_layout(G)
+# Extract node positions
+pos = nx.spring_layout(G, dim=3)
 
+# Create edge traces
+edge_traces = []
+for edge in G.edges():
+    x0, y0, z0 = pos[edge[0]]
+    x1, y1, z1 = pos[edge[1]]
+    edge_trace = go.Scatter3d(
+        x=[x0, x1],
+        y=[y0, y1],
+        z=[z0, z1],
+        mode='lines',
+        line=dict(color='rgba(100, 100, 100, 0.5)', width=3),  # Adjust edge thickness and color
+        hoverinfo='none'
+    )
+    edge_traces.append(edge_trace)
 
-# Define tooltips with image and additional information for nodes
-TOOLTIPS_NODES = """
-    <div>
-        <div>
-            <img src="@image" height="150" alt="@image" width="150" style="float: center; margin: 0px 0px 0px 0px;" border="2"></img>
-        </div>
-        <div>
-            <span style="font-size: 10px; color: #696;">Ranking by frequency: @index</span><br>
-            <span style="font-size: 10px; color: #696;">Count of positions: @count_of_positions</span><br>
-            <span style="font-size: 10px; color: #696;">Count of won games: @won_positions</span><br>
-            <span style="font-size: 10px; color: #696;">White win Ratio: @win_ratio</span><br>
-            <span style="font-size: 10px; color: #696;">lift: @lift</span>
-        </div>
-    </div>
-"""
-
-
-# Now, 'pos' is a dictionary where keys are node identifiers and values are (x, y) positions
-# You can access positions for specific nodes like this:
-x_pos = [pos[i][0] for i in G.nodes]
-y_pos = [pos[i][1] for i in G.nodes]
-description = [inverted_dict_of_common_fen_positions[i] for i in G.nodes]
-image_location = ['images/' + inverted_dict_of_common_fen_positions[i].replace('/','_') + '.png' for i in G.nodes]
-idx = [i for i in G.nodes]
+#% aestetic details. 
 counts_fen = [counts_of_fen_positions[i] for i in G.nodes]
 log_counts_fen = [np.log(counts_of_fen_positions[i]) for i in G.nodes]
-won_positions = [wins_per_fen_position[i] for i in G.nodes]
-win_ratio = [win_ratio_per_fen_position[i] for i in G.nodes]
 lift = [lift_per_fen_position[i] for i in G.nodes]
+color_mapper_func = lambda x: min(max(x-0.5,0),1.5)
+mapped_color = [color_mapper_func(x) for x in lift]
 
-# Calculate line coordinates for edges
-lines_x = []
-lines_y = []
-lines_weight = []
-for edge in G.edges():
-    start = pos[edge[0]]
-    end = pos[edge[1]]
-    lines_x.append([start[0], end[0]])
-    lines_y.append([start[1], end[1]])
-    try:
-        lines_weight.append(np.ceil(np.log(connections_dict[edge]*20))*10)
-    except KeyError:
-        lines_weight.append(np.ceil(np.log(connections_dict[(edge[1], edge[0])]*20))*10)
+# Create node trace
+node_trace = go.Scatter3d(
+    x=[pos[node][0] for node in G.nodes()],
+    y=[pos[node][1] for node in G.nodes()],
+    z=[pos[node][2] for node in G.nodes()],
+    mode='markers',
+    marker=dict(
+        size=log_counts_fen,  # Size based on variable1
+        color=mapped_color,  # Color based on variable2
+        colorscale='Blues',  # Choose a colorscale
+        colorbar=dict(title='Variable 2'),  # Add colorbar label
+        opacity=0.8,
+        line=dict(color='rgb(50,50,50)', width=0.5)  # Node border
+    ),
+    text=[f'Node: {node}<br>Variable 3: <br>Variable 4: ' for i, node in enumerate(G.nodes())],  # Tooltip
+    hoverinfo='text',
+    showlegend=False  # Hide legend
+)
 
-# Create a sample ColumnDataSource with data and image URLs for nodes
-data_nodes = {
-    'x': x_pos,
-    'y': y_pos,
-    'desc': description,
-    'image': image_location,
-    'index': idx,
-    'count_of_positions': counts_fen,
-    'log_count_of_positions': log_counts_fen,
-    'won_positions': won_positions,
-    'win_ratio': win_ratio,
-    'lift': lift
-}
-source_nodes = ColumnDataSource(data_nodes)
+# Create layout
+layout = go.Layout(
+    title='3D Network Plot',
+    scene=dict(
+        xaxis=dict(title='X', showbackground=False, showgrid=False),
+        yaxis=dict(title='Y', showbackground=False, showgrid=False),
+        zaxis=dict(title='Z', showbackground=False, showgrid=False),
+        bgcolor='rgba(0,0,0,1)',  # Adjust background color and opacity
+    ),
+    margin=dict(l=0, r=0, b=0, t=40),  # Adjust margin
+    showlegend=False,  # Hide legend
+)
 
-# Create a Bokeh figure
-p = figure(width=1980, height=1080, active_scroll='wheel_zoom')
+# Combine traces and layout into a figure
+fig = go.Figure(data=edge_traces + [node_trace], layout=layout)
 
-# Plot the lines for edges
-p.multi_line(lines_x, lines_y, line_color=lines_weight, line_width=1)
-
-minimum_value_color = max(min(lift),0.5)
-maximum_value_color = min(max(lift),1.5)
-color_mapper = linear_cmap(field_name='lift', palette=custom_palette, low=minimum_value_color, high=maximum_value_color)
-
-# Plot the points with images for nodes
-circle = p.circle('x', 'y', size='log_count_of_positions', source=source_nodes, fill_color=color_mapper, line_color='black')
-
-# Define hover tool for circles (nodes)
-hover_tool_nodes = HoverTool(renderers=[circle], tooltips=TOOLTIPS_NODES)
-p.add_tools(hover_tool_nodes)
-
-html_filename = "elite_players.html"
-output_file(html_filename)
-show(p)
-
-t2 = time.time()
-print(t2-t1)
-
-# Optionally, you can open the HTML file in a web browser automatically
-webbrowser.open(html_filename)
-#%%
-
+# Export the figure to an HTML file
+pio.write_html(fig, 'network_plot.html', include_plotlyjs='cdn', auto_open=True)
