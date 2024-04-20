@@ -85,7 +85,6 @@ node_trace = go.Scatter3d(
         size=log_counts_fen,  # Size based on variable1
         color=mapped_color,  # Color based on variable2
         colorscale='RdYlGn',  # Choose a colorscale
-        colorbar=dict(title='Lift'),  # Add colorbar label
         opacity=0.95,
         line=dict(color='rgb(50,50,50)', width=0.5)  # Node border
     ),
@@ -112,7 +111,6 @@ fig = go.Figure(data=edge_traces + [node_trace], layout=layout)
 
 # Export the figure to an HTML file
 pio.write_html(fig, 'network_plot.html', include_plotlyjs='cdn', auto_open=True)
-
 t2 = time.time()
-print('time to execute plot2d.py: ' + str(np.round(t2-t1, 3)) + ' seconds')
+print('time to execute plot3d.py: ' + str(np.round(t2-t1, 3)) + ' seconds')
 
