@@ -4,9 +4,9 @@ import pickle
 import numpy as np
 import networkx as nx
 
-
 import plotly.graph_objects as go
 import plotly.io as pio
+from dash import Dash, dcc, html, Input, Output, no_update, callback
 
 
 def human_format(num):
@@ -65,7 +65,7 @@ for edge in G.edges(data=True):
 #% aestetic details. 
 
 description = [inverted_dict_of_common_fen_positions[i] for i in G.nodes]
-image_location = ['images/' + inverted_dict_of_common_fen_positions[i].replace('/','_') + '.png' for i in G.nodes]
+image_location = ['assets/' + inverted_dict_of_common_fen_positions[i].replace('/','_') + '.png' for i in G.nodes]
 idx = [i for i in G.nodes]
 counts_fen = [counts_of_fen_positions[i] for i in G.nodes]
 log_counts_fen = [np.log(counts_of_fen_positions[i]) for i in G.nodes]
@@ -88,8 +88,6 @@ node_trace = go.Scatter3d(
         opacity=0.95,
         line=dict(color='rgb(50,50,50)', width=0.5)  # Node border
     ),
-    text=[f'Ranking by frequency: {node}<br>Won Positions: {human_format(won_positions[i])} <br>Win Ratio: {np.round(win_ratio[i],3)} <br>Lift: {np.round(lift[i],3)}' for i, node in enumerate(G.nodes())],  # Tooltip
-    hoverinfo='text',
     showlegend=False  # Hide legend
 )
 
@@ -109,8 +107,49 @@ layout = go.Layout(
 # Combine traces and layout into a figure
 fig = go.Figure(data=edge_traces + [node_trace], layout=layout)
 
-# Export the figure to an HTML file
-pio.write_html(fig, 'network_plot.html', include_plotlyjs='cdn', auto_open=True)
-t2 = time.time()
-print('time to execute plot3d.py: ' + str(np.round(t2-t1, 3)) + ' seconds')
+fig.update_traces(hoverinfo="none", hovertemplate=None)
 
+
+app = Dash(__name__)
+
+app.layout = html.Div([
+    dcc.Graph(id="graph-basic-2", figure=fig, clear_on_unhover=True),
+    dcc.Tooltip(id="graph-tooltip"),
+])
+
+
+
+@callback(
+    Output("graph-tooltip", "show"),
+    Output("graph-tooltip", "bbox"),
+    Output("graph-tooltip", "children"),
+    Input("graph-basic-2", "hoverData"),
+)
+def display_hover(hoverData):
+    if hoverData is None:
+        return False, no_update, no_update
+
+    # demo only shows the first point, but other points may also be available
+    pt = hoverData["points"][0]
+    bbox = pt["bbox"]
+    num = pt["pointNumber"]
+        
+    children = [
+        html.Div([
+            html.Img(src=image_location[num]),
+            html.H2(f"Ranking by frequency: {num}"),
+            html.P(f"Count games: {counts_fen[num]}"),
+            html.P(f"Won games: {won_positions[num]}"),
+            html.P(f"Win ratio: {win_ratio[num]}"),
+            html.P(f"Lift: {lift[num]}"),
+        ], style={'width': '200px', 'white-space': 'normal'})
+    ]
+
+    return True, bbox, children
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+    t2 = time.time()
+    print('time to execute plot3d.py: ' + str(np.round(t2-t1, 3)) + ' seconds')
+    
