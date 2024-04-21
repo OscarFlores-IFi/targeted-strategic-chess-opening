@@ -102,6 +102,8 @@ layout = go.Layout(
     ),
     margin=dict(l=0, r=0, b=0, t=40),  # Adjust margin
     showlegend=False,  # Hide legend
+    width=1920,
+    height=1080,
 )
 
 # Combine traces and layout into a figure
@@ -136,7 +138,7 @@ def display_hover(hoverData):
         
     children = [
         html.Div([
-            html.Img(src=image_location[num]),
+            html.Img(src=image_location[num],  style={'width': '80%', 'height': '80%'}),
             html.H2(f"Ranking by frequency: {num}"),
             html.P(f"Count games: {counts_fen[num]}"),
             html.P(f"Won games: {won_positions[num]}"),
@@ -153,3 +155,4 @@ if __name__ == "__main__":
     t2 = time.time()
     print('time to execute plot3d.py: ' + str(np.round(t2-t1, 3)) + ' seconds')
     
+    # python C:/Users/52331/Documents/GitHub/targeted-strategic-chess-opening/plot3d.py
