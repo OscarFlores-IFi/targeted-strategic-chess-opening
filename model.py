@@ -31,7 +31,7 @@ import os
 t1 = time.time()
 
 BigFilteredDF = pd.read_parquet('chess_games_large_elite_players.parquet') # this dataset considers only repeated moves
-BigFilteredDF = BigFilteredDF[BigFilteredDF.index < 15] # Only repeated moves in the opening, we do not care about repeated moves in endgame.
+BigFilteredDF = BigFilteredDF[BigFilteredDF.index < 30] # Only repeated moves in the opening, we do not care about repeated moves in endgame.
 
 min_number_of_games = np.ceil(BigFilteredDF.shape[0]*0.0005) # 1 out of 2000 games had at least those positions
 
@@ -57,7 +57,7 @@ subset = BigFilteredDF[['id', 'result', 'moves_id']].reset_index()
 #%% Generate Images
 import os
     # Directory to store images
-images_folder = "images/"
+images_folder = "assets/"
 
 # Iterate over ranking and fen_position pairs
 for ranking, fen_position in inverted_dict_of_common_fen_positions.items():
