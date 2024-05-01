@@ -1,5 +1,24 @@
 import pandas as pd
 import chess.pgn
+import re
+
+
+def process_pgn_file(path_to_file, PLAYER_NAME = None):
+    # Open PGN file for reading
+    pgn_file = open(path_to_file, encoding="utf8")
+    
+    # Get games in df format from pgn files
+    result_df = process_games(pgn_file, PLAYER_NAME)
+    
+    # Close PGN file
+    pgn_file.close()
+
+    # Get rid of unique positions. 
+    result_df = result_df[result_df.duplicated(['moves'], keep=False)]
+    
+    result_df.to_parquet(path_to_file[:-3] + 'parquet')
+    return result_df
+
 
 def process_games(chunk, PLAYER_NAME = None):
     big_table = []
@@ -29,7 +48,7 @@ def process_games(chunk, PLAYER_NAME = None):
         result = game.headers["Result"]
         if result != '*':
         
-            # Extract first 5 moves
+            # Extract moves
             moves = game.mainline_moves()
             
             board = game.board()
@@ -37,7 +56,10 @@ def process_games(chunk, PLAYER_NAME = None):
                      
             for move in moves:
                 board.push(move)
-                first_n_moves.append(board.fen().split()[0]) # position, not move
+                # we save position, not move
+                positon_as_fen = board.fen().split()[0]
+                clean_fen_position = re.sub(r'[^\w/]+$', '', positon_as_fen)
+                first_n_moves.append(clean_fen_position) 
     
             tmp = pd.DataFrame({'id': counter,
                                 'white_elo': white_elo, 
@@ -46,12 +68,14 @@ def process_games(chunk, PLAYER_NAME = None):
                                 'moves': first_n_moves})
             
             if PLAYER_NAME:
-                if game.headers['White'] == PLAYER_NAME:
-                    player_white = 1
-                elif game.headers['Black'] == PLAYER_NAME:
-                    player_white = 0
-                tmp['player_white'] = player_white
-    
+                try:
+                    if game.headers['White'] == PLAYER_NAME:
+                        player_white = 1
+                    elif game.headers['Black'] == PLAYER_NAME:
+                        player_white = 0
+                    tmp['player_white'] = player_white
+                except:
+                    print('Please make sure all the games contain the PLAYER_NAME')
             tmp['value'] = True
             
             big_table.append(tmp)
