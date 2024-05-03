@@ -5,14 +5,14 @@ from pathlib import Path
 
 from coalesce_parquets import coalesce_parquets
 from pgn_processor import process_pgn_file
-import time
 from model import model
+from plot2d import plot2d
 
 #%%
 # Directory containing PGN files of elite players
 DIRECTORY = 'DrNykterstein'
 PLAYER_NAME = 'DrNykterstein' # Substitute with Lichess or chesscom player name. 
-PLAYER_PIECES = 'white' # 'white' or 'black' or 'both' or None. 
+PLAYER_PIECES = 'both' # 'white' or 'black' or 'both' or None. 
 
 # DIRECTORY = 'LichessEliteDatabase'
 # PLAYER_NAME = None
@@ -44,11 +44,18 @@ def main():
     final_path = Path(DIRECTORY + "/final.parquet")
     if not os.path.exists(final_path):
         coalesce_parquets(paths, final_path)
-    
+        
     # Run model and store values into pkl
-    model(final_path, PLAYER_PIECES)
+    if PLAYER_PIECES == 'both':
+        model(final_path, PLAYER_PIECES='white')
+        plot2d(PLAYER_NAME, 'white')
+        
+        model(final_path, PLAYER_PIECES='black')
+        plot2d(PLAYER_NAME, 'black')
     
-    
+    else:
+        model(final_path, PLAYER_PIECES)
+        plot2d(PLAYER_NAME, PLAYER_PIECES)
     
 
         

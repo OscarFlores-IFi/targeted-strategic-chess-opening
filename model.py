@@ -10,7 +10,7 @@ import os
 
 #%% Get dataset of filtered positions.
 
-def model(parquet_filename, PLAYER_PIECES = None, PLAYER_NAME = None):
+def model(parquet_filename, PLAYER_PIECES = None):
     """
     Get the necessary information for the analysis.
 
