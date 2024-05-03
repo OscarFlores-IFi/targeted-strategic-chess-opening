@@ -8,7 +8,6 @@
 *.csv
 
 # images
-*images/
 *assets/
 
 # Cython

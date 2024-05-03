@@ -10,11 +10,13 @@ This project aims to visualize the best and worst opening positions for a player
 2. **Clone this repository**.
 
 3. **Copy the PGN file(s) into the cloned repository**.
+    - All the files have to be inside of a folder (DIRECTORY).
 
 4. **Modify variables in `main.py`**:
     - `DIRECTORY`: Set the directory name where your PGN files are located.
     - `PLAYER_NAME`: Provide the exact name of the player you want to analyze in the PGN files. Use `None` if you want to analyze openings in general.
-    - `PLAYER_PIECES`: If `PLAYER_NAME` is provided, analyze positions where the player has underperformed and overperformed compared to their average result.
+    - `PLAYER_PIECES`: If `PLAYER_NAME` is provided, you can analyze positions where the player has underperformed and overperformed compared to its average result.
+    Possible values are `white`, `black`, `both`, `None`.     
 
 5. **Create a conda environment**:
     - Using conda:
@@ -30,3 +32,5 @@ This project aims to visualize the best and worst opening positions for a player
 
 7. **Run `main.py`**:
     - Execute `main.py` using your preferred IDE or via command line.
+
+8. **Enjoy!**

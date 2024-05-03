@@ -10,13 +10,13 @@ from plot2d import plot2d
 
 #%%
 # Directory containing PGN files of elite players
-# DIRECTORY = 'DrNykterstein'
-# PLAYER_NAME = 'DrNykterstein' # Substitute with Lichess or chesscom player name. 
-# PLAYER_PIECES = 'both' # 'white' or 'black' or 'both' or None. 
+DIRECTORY = 'DrNykterstein'
+PLAYER_NAME = 'DrNykterstein' # Substitute with Lichess or chesscom player name. 
+PLAYER_PIECES = 'both' # 'white' or 'black' or 'both' or None. 
 
-DIRECTORY = 'LichessEliteDatabase'
-PLAYER_NAME = None
-PLAYER_PIECES = None
+# DIRECTORY = 'LichessEliteDatabase'
+# PLAYER_NAME = None
+# PLAYER_PIECES = None
    
 def main():
 
