@@ -6,6 +6,12 @@ This project aims to visualize the best and worst opening positions for a player
 
 1. **Download the PGN dataset**:
     - Obtain the PGN dataset you wish to analyze from providers like chess.com or lichess.org. You can find information on how to download your own games from these servers.
+    There's a lot of information about it online, but long story short, it works similar to this (copy the link and run it in your web browser): 
+        ```
+        https://lichess.org/games/export/DrNykterstein
+        https://lichess.org/games/export/oscarmex45
+        ```
+    Or you can make use of https://lichessgamedownload.netlify.app/ 
 
 2. **Clone this repository**.
 
