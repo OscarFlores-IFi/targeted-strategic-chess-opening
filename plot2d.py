@@ -148,7 +148,7 @@ maximum_value_color = min(max(lift),1.5)
 color_mapper = linear_cmap(field_name='lift', palette=custom_palette, low=minimum_value_color, high=maximum_value_color)
 
 # Plot the points with images for nodes
-circle = p.circle('x', 'y', size='log_count_of_positions', source=source_nodes, fill_color=color_mapper, line_color='black')
+circle = p.scatter('x', 'y', size='log_count_of_positions', source=source_nodes, fill_color=color_mapper, line_color='black')
 
 # Define hover tool for circles (nodes)
 hover_tool_nodes = HoverTool(renderers=[circle], tooltips=TOOLTIPS_NODES)
