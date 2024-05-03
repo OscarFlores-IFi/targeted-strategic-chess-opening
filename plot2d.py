@@ -9,16 +9,11 @@ from bokeh.models import ColumnDataSource, HoverTool
 from bokeh.plotting import figure
 from bokeh.transform import linear_cmap
 from bokeh.colors import RGB
-
 import time
-
-import webbrowser
 
 #%%
 
-def plot2d(PLAYER_NAME = None, PLAYER_PIECES = None):
-    t1 = time.time()
-    
+def plot2d(filename, PLAYER_NAME = None, PLAYER_PIECES = None):    
     if PLAYER_NAME is not None:
         name_str = str(PLAYER_NAME)
     else:
@@ -28,8 +23,6 @@ def plot2d(PLAYER_NAME = None, PLAYER_PIECES = None):
         pieces_str = str(PLAYER_PIECES)
     else:
         pieces_str = ""
-
-    filename = 'saved_variables.pkl'
     
     # To load the variables back into the environment later:
     # Load the variables from the file
@@ -115,9 +108,9 @@ def plot2d(PLAYER_NAME = None, PLAYER_PIECES = None):
     idx = [i for i in G.nodes]
     counts_fen = [counts_of_fen_positions[i] for i in G.nodes]
     log_counts_fen = [np.log(counts_of_fen_positions[i]) for i in G.nodes]
-    won_positions = [wins_per_fen_position[i] for i in G.nodes]
-    win_ratio = [win_ratio_per_fen_position[i] for i in G.nodes]
-    lift = [lift_per_fen_position[i] for i in G.nodes]
+    won_positions = [wins_per_fen_position.get(i, 0) for i in G.nodes]
+    win_ratio = [win_ratio_per_fen_position.get(i, 0) for i in G.nodes]
+    lift = [lift_per_fen_position.get(i, 0) for i in G.nodes]
     
     # Calculate line coordinates for edges
     lines_x = []
@@ -167,16 +160,6 @@ def plot2d(PLAYER_NAME = None, PLAYER_PIECES = None):
     p.add_tools(hover_tool_nodes)
     
     html_filename = "plot2d" + name_str + pieces_str + ".html"
-    print(html_filename)
     output_file(html_filename)
     show(p)
-        
-    
-    # Optionally, you can open the HTML file in a web browser automatically
-    # webbrowser.open(html_filename)
-    
-    t2 = time.time()
-    print('time to execute plot2d.py: ' + str(np.round(t2-t1, 3)) + ' seconds')
-
-#%%
 

@@ -4,8 +4,6 @@ import pandas as pd
 
 from fentoimage.board import BoardImage
 
-import time
-
 import os
 
 #%% Get dataset of filtered positions.
@@ -34,13 +32,17 @@ def model(parquet_filename, PLAYER_PIECES = None):
     saved_variables.pkl
         The important variables will be stored under a pkl file.
     """
+  
     
-    # t1 = time.time()
-    
+    if PLAYER_PIECES is not None:
+        pieces_str = str(PLAYER_PIECES)
+    else:
+        pieces_str = ""
+        
     BigFilteredDF = pd.read_parquet(parquet_filename) # this dataset considers only repeated moves
-    BigFilteredDF = BigFilteredDF[BigFilteredDF.index < 30] # Only repeated moves in the opening, we do not care about repeated moves in endgame.
+    BigFilteredDF = BigFilteredDF[BigFilteredDF.index < 20] # Only repeated moves in the opening, we do not care about repeated moves in endgame.
     
-    min_number_of_games = np.ceil(BigFilteredDF.shape[0]*0.0005) # 1 out of 2000 games had at least those positions
+    min_number_of_games = max(np.ceil(BigFilteredDF.shape[0]*0.0005),15) # 1 out of 2000 games, or 25 games had at least those positions. 
     
     if PLAYER_PIECES == 'white':
         BigFilteredDF = BigFilteredDF[BigFilteredDF['player_white'] == 1]
@@ -61,9 +63,6 @@ def model(parquet_filename, PLAYER_PIECES = None):
     BigFilteredDF['moves_id'] = BigFilteredDF['moves'].map(dict_of_common_fen_positions)
     
     subset = BigFilteredDF[['id', 'result', 'moves_id']].reset_index()
-    
-    # t2 = time.time()
-    # print('Time to get chess positions: ' + str(t2 - t1))
     
     #%% Generate Images
         # Directory to store images
@@ -87,9 +86,6 @@ def model(parquet_filename, PLAYER_PIECES = None):
             image.save(image_filename)
             new_images += 1
     
-    # t3 = time.time()
-    # print('Time to draw ' + str(new_images) + ' chess positions: ' + str(t3 - t2))
-
     #%% Values shown in dashboard. 
     counts_of_fen_positions = subset.value_counts('moves_id').to_dict()
     counts_of_fen_positions[0] = subset[subset['index'] == 0]['id'].count()
@@ -107,9 +103,7 @@ def model(parquet_filename, PLAYER_PIECES = None):
     subset2.loc[subset2['id1'] != subset2['id2'], 'moves_id1'] = 0
     connections_dict = subset2.groupby(['moves_id1', 'moves_id2']).count().max(axis=1).to_dict()
     #%% Save variables
-    filename = 'saved_variables.pkl'
     
-    # Variables to be saved
     variables_to_save = {
         'list_of_most_common_fen_positions': list_of_most_common_fen_positions,
         'dict_of_common_fen_positions': dict_of_common_fen_positions,
@@ -121,6 +115,12 @@ def model(parquet_filename, PLAYER_PIECES = None):
         'connections_dict': connections_dict
     }
     
+    directory = parquet_filename.parent
+
+    filename = str(directory) + "/" + pieces_str + 'saved_variables.pkl'
+
     # Pickle the variables and save them to a file
     with open(filename, 'wb') as file:
         pickle.dump(variables_to_save, file)
+        
+    return filename

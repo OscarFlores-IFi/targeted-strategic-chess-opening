@@ -10,15 +10,13 @@ from plot2d import plot2d
 
 #%%
 # Directory containing PGN files of elite players
-DIRECTORY = 'DrNykterstein'
-PLAYER_NAME = 'DrNykterstein' # Substitute with Lichess or chesscom player name. 
-PLAYER_PIECES = 'both' # 'white' or 'black' or 'both' or None. 
+# DIRECTORY = 'DrNykterstein'
+# PLAYER_NAME = 'DrNykterstein' # Substitute with Lichess or chesscom player name. 
+# PLAYER_PIECES = 'both' # 'white' or 'black' or 'both' or None. 
 
-# DIRECTORY = 'LichessEliteDatabase'
-# PLAYER_NAME = None
-# PLAYER_PIECES = None
- 
-
+DIRECTORY = 'LichessEliteDatabase'
+PLAYER_NAME = None
+PLAYER_PIECES = None
    
 def main():
 
@@ -47,20 +45,16 @@ def main():
         
     # Run model and store values into pkl
     if PLAYER_PIECES == 'both':
-        model(final_path, PLAYER_PIECES='white')
-        plot2d(PLAYER_NAME, 'white')
+        saved_variables_filename1 = model(final_path, PLAYER_PIECES='white')
+        plot2d(saved_variables_filename1, PLAYER_NAME, 'white')
         
-        model(final_path, PLAYER_PIECES='black')
-        plot2d(PLAYER_NAME, 'black')
+        saved_variables_filename2 = model(final_path, PLAYER_PIECES='black')
+        plot2d(saved_variables_filename2, PLAYER_NAME, 'black')
     
     else:
-        model(final_path, PLAYER_PIECES)
-        plot2d(PLAYER_NAME, PLAYER_PIECES)
+        saved_variables_filename = model(final_path, PLAYER_PIECES)
+        plot2d(saved_variables_filename, PLAYER_NAME, PLAYER_PIECES)
     
-
-        
-
-
 
 if __name__ == '__main__':
 
