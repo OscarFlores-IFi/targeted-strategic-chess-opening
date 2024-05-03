@@ -10,13 +10,13 @@ from model import model
 
 #%%
 # Directory containing PGN files of elite players
-# DIRECTORY = 'Oscarmex45'
-# PLAYER_NAME = 'oscarmex45' # Substitute with Lichess or chesscom player name. 
-# PLAYER_PIECES = 'white' # 'white' or 'black' or None. 
+DIRECTORY = 'DrNykterstein'
+PLAYER_NAME = 'DrNykterstein' # Substitute with Lichess or chesscom player name. 
+PLAYER_PIECES = 'white' # 'white' or 'black' or 'both' or None. 
 
-DIRECTORY = 'LichessEliteDatabase'
-PLAYER_NAME = None
-PLAYER_PIECES = None
+# DIRECTORY = 'LichessEliteDatabase'
+# PLAYER_NAME = None
+# PLAYER_PIECES = None
  
 
    

@@ -1,4 +1,3 @@
-
 import pickle
 import numpy as np
 import pandas as pd
@@ -79,6 +78,7 @@ def model(parquet_filename, PLAYER_PIECES = None, PLAYER_NAME = None):
         # Check if the image file already exists
         if not os.path.exists(image_filename):
             print(f'rendering fen {ranking}')
+            print(fen_position)
             # Create the BoardImage object and render the image
             renderer = BoardImage(fen_position)
             image = renderer.render()

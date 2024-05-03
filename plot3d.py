@@ -8,6 +8,9 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from dash import Dash, dcc, html, Input, Output, no_update, callback
 
+import webbrowser
+
+
 
 def human_format(num):
     num = float('{:.3g}'.format(num))
@@ -152,6 +155,8 @@ def display_hover(hoverData):
 
 if __name__ == "__main__":
     app.run(debug=True)
+    webbrowser.open_new_tab("http://127.0.0.1:8050")
+
     t2 = time.time()
     print('time to execute plot3d.py: ' + str(np.round(t2-t1, 3)) + ' seconds')
     

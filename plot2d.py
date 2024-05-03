@@ -64,7 +64,6 @@ custom_palette = [red] + intermediate_colors1 + [yellow] + intermediate_colors2 
 # Create color mapper with custom palette
 
 # %%
-from bokeh.io import output_file, show
 
 # Create a graph object
 G = nx.Graph()
