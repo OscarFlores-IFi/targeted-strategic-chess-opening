@@ -52,10 +52,10 @@ The main contribution is that we can observe games as positions and not as a str
 Tooltips are useful to visualize each position and the information about it. 
 ![Tooltips available :) ](https://github.com/OscarFlores-IFi/targeted-strategic-chess-opening/blob/main/readme_images/tooltips_for_each_node.png)
 
-Important analysis that can be exctracted out of this is the best positions and the worst positions when a player plays as white or as black. As an example we use the games played by Magnus Carlsen and we can observe that he has performed the best under Scandinavian game (up to 80% probability of Carlsen winning)
+Important analysis that can be exctracted out of this is the best positions and the worst positions when a player plays as white or as black. As an example we use the games played by Magnus Carlsen and we can observe that when he is playing with the white pieces he has performed the best against Scandinavian games (up to 80% probability of Carlsen winning)
 ![Best position for Magnus Carlsen when playing as white](https://github.com/OscarFlores-IFi/targeted-strategic-chess-opening/blob/main/readme_images/best_position_for_magnus_as_white.png)
 
-In the similar way, we can also observe that Carlsen is in general worse in a London game when countergambits with the c pawn. White's probability of winning is 37.5%, which is quite high considering that only 24% of the games with Carlsen as black end up with Carlsen loosing. 
+In the similar way, we can also observe that when Carlsen plays with black pieces, in general his worst position is a London game countergambit with the c pawn. White's probability of winning against Carlsen is 37.5%, which is quite high considering that only 24% of the games with Carlsen as black end up with Carlsen loosing. 
 ![Worst position for magnus when playing as black](https://github.com/OscarFlores-IFi/targeted-strategic-chess-opening/blob/main/readme_images/worst_position_for_magnus_as_black.png)
 
 There are 5 important variables shown in the tooltip: 
