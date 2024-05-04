@@ -1,6 +1,10 @@
 # Targeted Strategic Chess Opening
 
-This project aims to visualize the best and worst opening positions for a player.
+Let's say that tomorrow you are facing a match against Magnus Carlsen. How would you prepare for the match? 
+Trying to improve your endgame in one day is impossible (in my opinion). Trying to improve in the middlegame, also impossible I would say. 
+Preparing an opening repertoire with the highest chances of winning, well... It may not change quite a lot your probabilities of winning anyways, but you can do it ;)
+
+This project aims to visualize the best and worst opening positions for a player. So if tomorrow you aim to play against Magnus, you can know that if you play as black you should not play Scandinavian openings, as you are most likely to loose. 
 
 ## Usage
 
